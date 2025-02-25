@@ -1,6 +1,5 @@
-#include <glad/glad.h>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
+#include <SDL2/SDL_vulkan.h>
 
 #define PINK 0.97, 0.86, 0.89, 1.0 
 
@@ -11,19 +10,12 @@ int main(void) {
 		return -1;
 	}
 	
-	// request opengl version 4.1
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);	
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);	
-
-	// enable double buffering
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);	
-
 	// open main window
 	SDL_Window *window = SDL_CreateWindow(
 		"drive",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 		1280, 720,
-		SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI
+		SDL_WINDOW_VULKAN | SDL_WINDOW_ALLOW_HIGHDPI
 	);
 	
 	if (window == NULL) {
@@ -35,19 +27,8 @@ int main(void) {
 	// query the coordinate and pixel width of the main window
 	int coordW, coordH, pixelW, pixelH;
 	SDL_GetWindowSize(window, &coordW, &coordH);
-	SDL_GL_GetDrawableSize(window, &pixelW, &pixelH);
-
-	// create opengl context for main window
-	SDL_GLContext context = SDL_GL_CreateContext(window);
-	if (context == NULL) {
-		SDL_Log("GL context creation failed: %s\n", SDL_GetError());
-		SDL_Quit();
-		return -1;
-	}
-
-	// load opengl procedure addresses using glad with the SDL loader
-	gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress);	
-
+	SDL_Vulkan_GetDrawableSize(window, &pixelW, &pixelH);
+	
 	SDL_Event e;
 	while (1) {
 		// process events
@@ -62,16 +43,9 @@ int main(void) {
 					}
 			}
 		}
-		// set background color
-		glClearColor(PINK);
-		glClear(GL_COLOR_BUFFER_BIT);
-		
-		// swap buffers	
-		SDL_GL_SwapWindow(window);
 	}
 
 cleanup:
-	SDL_GL_DeleteContext(context);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 	return 0;

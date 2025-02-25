@@ -1,13 +1,10 @@
 
 
-all: main.o glad.o
-	cc -o bin $^ -lSDL2
+all: main.o 
+	cc -o bin $^ -lSDL2 -lvulkan
 
 main.o: main.c
 	cc -c main.c
-
-glad.o: glad.c
-	cc -c glad.c
 
 clean:
 	rm -rf bin *.o
