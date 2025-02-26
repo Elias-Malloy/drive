@@ -9,7 +9,7 @@ VkResult initializeVulkanApp(VulkanApp *app) {
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 		.pApplicationName = app->name,
 		.pEngineName = app->name,
-		.apiVersion = VK_MAKE_API_VERSION(0, 1, 3, 0)
+		.apiVersion = VK_API_VERSION_1_3
 	};
 
 	VkInstanceCreateInfo instanceCreateInfo = {
@@ -34,25 +34,40 @@ VkResult initializeVulkanApp(VulkanApp *app) {
 		return res;
 	}
 
-	if (app->validate && app->debugCallback) {
-		
-		VkDebugReportCallbackCreateInfoEXT debugCallbackCreateInfo = {
-			.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
-			.flags = VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | 
-					 VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | 
-					 VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT,
-			.pfnCallback = app->debugCallbackFunction 
+	if (app->validate && app->debugCallbackFunction) {
+		// register the debug messenger function
+		VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+			.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT, 
+			.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
+			.pfnUserCallback = app->debugCallbackFunction 
 		};
-		PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = 
-			(PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(app->instance, 
-			"vkCreateDebugReportCallbackEXT");
 
-		vkCreateDebugReportCallbackEXT(app->instance, &debugCallbackCreateInfo, 
-									   app->allocator, &app->debugCallback);
+		PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessengerEXT =
+			(PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
+			app->instance, "vkCreateDebugUtilsMessengerEXT");
+		
+		vkCreateDebugUtilsMessengerEXT(app->instance, &debugMessengerCreateInfo, 
+									   app->allocator, &app->debugMessenger);
 	}
 
-	// step two : 
+	// step two : choose a physical device
 
+	uint32 physicalDeviceCount;
+	vkEnumeratePhysicalDevices(app->instance, &physicalDeviceCount, NULL);
+	VkPhysicalDevice *physicalDevices = malloc(sizeof(VkPhysicalDevice) * physicalDeviceCount);
+	if (physicalDevices == NULL) return VK_ERROR_OUT_OF_HOST_MEMORY;
+	vkEnumeratePhysicalDevices(app->instance, &physicalDeviceCount, physicalDevices);
+	
+	// todo add real criteria
+	app->physicalDevice = physicalDevices[0];
+	free(physicalDevices);
+
+	// step three : choose queue family
+
+	// step four : create logical device
+
+	
 
 	return VK_SUCCESS;
 }
@@ -60,11 +75,11 @@ VkResult initializeVulkanApp(VulkanApp *app) {
 void quitVulkanApp(VulkanApp *app) {
 	if (app == NULL || app->instance == VK_NULL_HANDLE) return;
 
-	if (app->debugCallback != VK_NULL_HANDLE) {
-		PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT = 
-			(PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(app->instance, 
-			"vkDestroyDebugReportCallbackEXT");
-		vkDestroyDebugReportCallbackEXT(app->instance, app->debugCallback, app->allocator);
+	if (app->debugMessenger != VK_NULL_HANDLE) {
+		PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT =
+			(PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
+			app->instance, "vkDestroyDebugUtilsMessengerEXT");
+		vkDestroyDebugUtilsMessengerEXT(app->instance, app->debugMessenger, app->allocator);
 	}
 	vkDestroyInstance(app->instance, app->allocator);
 }

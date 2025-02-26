@@ -2,17 +2,21 @@
 #define EMM_VULKAN_H
 
 #include <vulkan/vulkan.h>
+#include <stdlib.h>
 #include "intdef.h"
 
 typedef struct VulkanApp {
 	VkInstance instance;
+	VkPhysicalDevice physicalDevice;
 	VkDevice device;	
+
 	
 	const char **extensionNames;
 	uint32 extensionCount;
 
-	PFN_vkDebugReportCallbackEXT debugCallbackFunction;
-	VkDebugReportCallbackEXT debugCallback;
+	PFN_vkDebugUtilsMessengerCallbackEXT debugCallbackFunction;
+	VkDebugUtilsMessengerEXT debugMessenger;
+
 	
 	VkAllocationCallbacks *allocator;
 	const char *name;

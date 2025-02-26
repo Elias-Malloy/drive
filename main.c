@@ -5,15 +5,16 @@
 
 #include "emm_vulkan.h"
 
-VkBool32 debugCallback(
-	VkDebugReportFlagsEXT                       flags,
-    VkDebugReportObjectTypeEXT                  objectType,
-    uint64_t                                    object,
-    size_t                                      location,
-    int32_t                                     messageCode,
-    const char*                                 pLayerPrefix,
-    const char*                                 pMessage,
-    void*                                       pUserData);
+VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData) {
+
+    SDL_Log("Validation layer: %s\n", pCallbackData->pMessage);
+
+    return VK_FALSE;
+}
 
 int main(void) {
 	// Startup SDL subsystems
@@ -55,7 +56,7 @@ int main(void) {
 
 	uint32 res = initializeVulkanApp(&app);
 	if (res != 0) SDL_Log("Vulkan App init failed with code: %d\n", res);
-	
+
 	SDL_Event e;
 	while (1) {
 		// process events
@@ -80,16 +81,4 @@ cleanup:
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 	return 0;
-}
-
-VkBool32 debugCallback(
-	VkDebugReportFlagsEXT                       flags,
-    VkDebugReportObjectTypeEXT                  objectType,
-    uint64_t                                    object,
-    size_t                                      location,
-    int32_t                                     messageCode,
-    const char*                                 pLayerPrefix,
-    const char*                                 pMessage,
-    void*                                       pUserData) {
-	SDL_Log("%s: %s\n", pLayerPrefix, pMessage);
 }
