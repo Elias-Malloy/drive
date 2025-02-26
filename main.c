@@ -1,7 +1,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
+#include "intdef.h"
 
-#define PINK 0.97, 0.86, 0.89, 1.0 
+#include "emm_vulkan.h"
 
 int main(void) {
 	// Startup SDL subsystems
@@ -28,6 +29,19 @@ int main(void) {
 	int coordW, coordH, pixelW, pixelH;
 	SDL_GetWindowSize(window, &coordW, &coordH);
 	SDL_Vulkan_GetDrawableSize(window, &pixelW, &pixelH);
+
+	VulkanApp app = {
+		.name = "drive",
+		.validate = 1,
+	};
+
+	SDL_Vulkan_GetInstanceExtensions(window, &app.extensionCount, NULL);
+	app.extensionNames = malloc((app.extensionCount + 1) * sizeof(char *));
+	SDL_Vulkan_GetInstanceExtensions(window, &app.extensionCount, app.extensionNames);	
+	app.extensionNames[app.extensionCount++] = "VK_KHR_portability_enumeration";
+
+	uint32 res = initializeVulkanApp(&app);
+	if (res != 0) SDL_Log("Vulkan App init failed with code: %d\n", res);
 	
 	SDL_Event e;
 	while (1) {
@@ -43,9 +57,12 @@ int main(void) {
 					}
 			}
 		}
+		// render
 	}
 
+
 cleanup:
+	free(app.extensionNames);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 	return 0;
