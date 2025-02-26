@@ -10,6 +10,9 @@ typedef struct VulkanApp {
 	
 	const char **extensionNames;
 	uint32 extensionCount;
+
+	PFN_vkDebugReportCallbackEXT debugCallbackFunction;
+	VkDebugReportCallbackEXT debugCallback;
 	
 	VkAllocationCallbacks *allocator;
 	const char *name;
@@ -17,5 +20,6 @@ typedef struct VulkanApp {
 } VulkanApp;
 
 VkResult initializeVulkanApp(VulkanApp *app);
+void quitVulkanApp(VulkanApp *app);
 
 #endif

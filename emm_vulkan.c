@@ -3,7 +3,7 @@
 VkResult initializeVulkanApp(VulkanApp *app) {
 	VkResult res;
 
-	// step one : create instance ( if you're scared pretend this is in its own function )
+	// step one : create instance 
 
 	VkApplicationInfo applicationInfo = {
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -23,6 +23,7 @@ VkResult initializeVulkanApp(VulkanApp *app) {
 	};
 
 	if (app->validate) {
+		// todo check layer availibility and only enable if they are availible
 		instanceCreateInfo.enabledLayerCount = 1;
 		instanceCreateInfo.ppEnabledLayerNames = validationLayerNames;
 	}
@@ -33,8 +34,37 @@ VkResult initializeVulkanApp(VulkanApp *app) {
 		return res;
 	}
 
+	if (app->validate && app->debugCallback) {
+		
+		VkDebugReportCallbackCreateInfoEXT debugCallbackCreateInfo = {
+			.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
+			.flags = VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | 
+					 VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | 
+					 VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT,
+			.pfnCallback = app->debugCallbackFunction 
+		};
+		PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT = 
+			(PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(app->instance, 
+			"vkCreateDebugReportCallbackEXT");
+
+		vkCreateDebugReportCallbackEXT(app->instance, &debugCallbackCreateInfo, 
+									   app->allocator, &app->debugCallback);
+	}
+
 	// step two : 
 
 
 	return VK_SUCCESS;
+}
+
+void quitVulkanApp(VulkanApp *app) {
+	if (app == NULL || app->instance == VK_NULL_HANDLE) return;
+
+	if (app->debugCallback != VK_NULL_HANDLE) {
+		PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT = 
+			(PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(app->instance, 
+			"vkDestroyDebugReportCallbackEXT");
+		vkDestroyDebugReportCallbackEXT(app->instance, app->debugCallback, app->allocator);
+	}
+	vkDestroyInstance(app->instance, app->allocator);
 }

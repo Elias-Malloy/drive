@@ -1,8 +1,19 @@
+#include <vulkan/vulkan.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 #include "intdef.h"
 
 #include "emm_vulkan.h"
+
+VkBool32 debugCallback(
+	VkDebugReportFlagsEXT                       flags,
+    VkDebugReportObjectTypeEXT                  objectType,
+    uint64_t                                    object,
+    size_t                                      location,
+    int32_t                                     messageCode,
+    const char*                                 pLayerPrefix,
+    const char*                                 pMessage,
+    void*                                       pUserData);
 
 int main(void) {
 	// Startup SDL subsystems
@@ -33,12 +44,14 @@ int main(void) {
 	VulkanApp app = {
 		.name = "drive",
 		.validate = 1,
+		.debugCallbackFunction = debugCallback
 	};
 
 	SDL_Vulkan_GetInstanceExtensions(window, &app.extensionCount, NULL);
-	app.extensionNames = malloc((app.extensionCount + 1) * sizeof(char *));
+	app.extensionNames = malloc((app.extensionCount + 2) * sizeof(char *));
 	SDL_Vulkan_GetInstanceExtensions(window, &app.extensionCount, app.extensionNames);	
 	app.extensionNames[app.extensionCount++] = "VK_KHR_portability_enumeration";
+	app.extensionNames[app.extensionCount++] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME; 
 
 	uint32 res = initializeVulkanApp(&app);
 	if (res != 0) SDL_Log("Vulkan App init failed with code: %d\n", res);
@@ -63,7 +76,20 @@ int main(void) {
 
 cleanup:
 	free(app.extensionNames);
+	quitVulkanApp(&app);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 	return 0;
+}
+
+VkBool32 debugCallback(
+	VkDebugReportFlagsEXT                       flags,
+    VkDebugReportObjectTypeEXT                  objectType,
+    uint64_t                                    object,
+    size_t                                      location,
+    int32_t                                     messageCode,
+    const char*                                 pLayerPrefix,
+    const char*                                 pMessage,
+    void*                                       pUserData) {
+	SDL_Log("%s: %s\n", pLayerPrefix, pMessage);
 }
