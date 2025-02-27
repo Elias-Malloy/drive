@@ -128,10 +128,11 @@ VkResult initializeVulkanApp(VulkanApp *app) {
 		if (app->physicalDevice != VK_NULL_HANDLE) break;
 	}
 
+	free(physicalDevices);
+	
 	// when a suitible device is found, it will be assigned to app->physicalDevice	
 	if (app->physicalDevice == VK_NULL_HANDLE) return VK_ERROR_FEATURE_NOT_PRESENT;
 	
-	free(physicalDevices);
 
 	// step three : create logical device
 	float *queuePriorities = malloc(sizeof(float) * app->queueCount);
@@ -159,9 +160,7 @@ VkResult initializeVulkanApp(VulkanApp *app) {
 
 	free(queuePriorities);
 
-	if (res != VK_SUCCESS) return res;
-
-	return VK_SUCCESS;
+	return res;
 }
 
 void quitVulkanApp(VulkanApp *app) {
