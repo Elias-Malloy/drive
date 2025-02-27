@@ -6,6 +6,8 @@
 #include <string.h>
 #include "intdef.h"
 
+const uint32 INVALID_INDEX = UINT32_MAX;
+
 // SDL is not included
 // SDL details need to be filled out outside of here
 // This way this glfw could be dropped in for free
@@ -16,11 +18,21 @@ typedef struct VulkanApp {
 	VkPhysicalDevice physicalDevice;
 	VkDevice device;	
 	VkSurfaceKHR surface;
+	VkSwapchainKHR swapchain;
+	VkImage swapchainImages;
+	
+	uint32 swapchainSize;
+
+
+	VkExtent2D windowDimensions;
+	
+	uint32 graphicsQueueFamily;
+	uint32 presentQueueFamily;
+	uint32 graphicsQueueCount;
+	uint32 presentQueueCount;
+
 	VkDebugUtilsMessengerEXT debugMessenger;
 
-	// fill this out with the number of queues you need
-	uint32 queueCount;
-	
 	// fill this out with the extensions you need from an instance
 	const char **extensionNames;
 	uint32 extensionCount;

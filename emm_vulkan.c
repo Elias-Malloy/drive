@@ -1,9 +1,7 @@
 #include "emm_vulkan.h"
 
-VkResult initializeVulkanApp(VulkanApp *app) {
+VkResult createInstance(VulkanApp *app) {
 	VkResult res;
-
-	// step one : create instance 
 
 	VkApplicationInfo applicationInfo = {
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -60,18 +58,19 @@ VkResult initializeVulkanApp(VulkanApp *app) {
 									   app->allocator, &app->debugMessenger);
 	}
 
-	// step two : choose a physical device
+	return VK_SUCCESS;
+}
 
+VkResult selectPhysicalDevice(VulkanApp *app) {
+	VkResult res;
 	uint32 physicalDeviceCount;
 	vkEnumeratePhysicalDevices(app->instance, &physicalDeviceCount, NULL);
 	VkPhysicalDevice *physicalDevices = malloc(sizeof(VkPhysicalDevice) * physicalDeviceCount);
 	if (physicalDevices == NULL) return VK_ERROR_OUT_OF_HOST_MEMORY;
 	vkEnumeratePhysicalDevices(app->instance, &physicalDeviceCount, physicalDevices);
 
-	
-	uint32 queueFamilyCount = 0, queueFamilyIndex;
+	uint32 queueFamilyCount = 0;
 	VkQueueFamilyProperties *queueFamilyProperties;
-	VkQueueFlags requiredQueueFlags = VK_QUEUE_GRAPHICS_BIT;
 
 	for (uint32 i = 0; i < physicalDeviceCount; i++) {
 		// query queue family properties
@@ -81,8 +80,20 @@ VkResult initializeVulkanApp(VulkanApp *app) {
 		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], &queueFamilyCount, 
 			queueFamilyProperties);
 		bool deviceSupportsRequiredQueueOperations = 0;
+		
+		app->presentQueueFamily = INVALID_INDEX;
+		app->graphicsQueueFamily = INVALID_INDEX;
+
 		for (uint32 j = 0; j < queueFamilyCount; j++) {
-			if ((queueFamilyProperties[i].queueFlags & requiredQueueFlags)) {
+			VkBool32 surfaceSupported = VK_FALSE;
+			if (app->surface != VK_NULL_HANDLE) {
+				res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevices[i], j, app->surface, &surfaceSupport);
+				if (res != VK_SUCCESS) surfaceSupported = VK_FALSE;
+			}
+
+			if (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+				// the user wants as many queues as possible but no specific number
+				
 				// does the queue family contain at lease the requested number of queues
 				if (app->queueCount == 0 || app->queueCount >= queueFamilyProperties[i].queueCount) {
 					if (app->queueCount == 0) app->queueCount = queueFamilyProperties[i].queueCount;
@@ -133,24 +144,40 @@ VkResult initializeVulkanApp(VulkanApp *app) {
 	// when a suitible device is found, it will be assigned to app->physicalDevice	
 	if (app->physicalDevice == VK_NULL_HANDLE) return VK_ERROR_FEATURE_NOT_PRESENT;
 	
+	return VK_SUCCESS;
+}	
 
-	// step three : create logical device
-	float *queuePriorities = malloc(sizeof(float) * app->queueCount);
-	if (queuePriorities == NULL) return VK_ERROR_OUT_OF_HOST_MEMORY;
-	for (uint32 i = 0; i < app->queueCount; i++) {
-		queuePriorities[i] = 1.0f / app->queueCount;
+VkResult createLogicalDevice(VulkanApp *app) {
+	float *graphicsQueuePriorities = malloc(sizeof(float) * app->graphicsQueueCount);
+	if (graphicsQueuePriorities == NULL) return VK_ERROR_OUT_OF_HOST_MEMORY;
+	float *presentQueuePriorities = malloc(sizeof(float) * app->presentQueueCount);
+	if (presentQueuePriorities == NULL) return VK_ERROR_OUT_OF_HOST_MEMORY;
+	
+	for (uint32 i = 0; i < app->graphicsQueueCount; i++) {
+		graphicsQueuePriorities[i] = 1.0f / app->graphicsQueueCount;
+	}
+	for (uint32 i = 0; i < app->presentQueueCount; i++) {
+		presentQueuePriorities[i] = 1.0f / app->presentQueueCount;
 	}
 
-	VkDeviceQueueCreateInfo deviceQueueCreateInfo = {
-		.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-		.queueFamilyIndex = queueFamilyIndex,
-		.queueCount = app->queueCount,
-		.pQueuePriorities = queuePriorities 
+	VkDeviceQueueCreateInfo deviceQueueCreateInfos[2] = {
+		{
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.queueFamilyIndex = app->graphicsQueueFamilyIndex,
+			.queueCount = app->graphicsQueueCount,
+			.pQueuePriorities = graphicsQueuePriorities
+		},
+		{
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.queueFamilyIndex = app->presentQueueFamilyIndex,
+			.queueCount = app->presentQueueCount,
+			.pQueuePriorities = presentQueuePriorities
+		}
 	};
 
 	VkDeviceCreateInfo deviceCreateInfo = {
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-		.queueCreateInfoCount = 1,
+		.queueCreateInfoCount = 2,
 		.pQueueCreateInfos = &deviceQueueCreateInfo,
 		.enabledExtensionCount = app->deviceExtensionCount,
 		.ppEnabledExtensionNames = app->deviceExtensionNames,
@@ -158,10 +185,16 @@ VkResult initializeVulkanApp(VulkanApp *app) {
 	
 	res = vkCreateDevice(app->physicalDevice, &deviceCreateInfo, app->allocator, &app->device);
 
-	free(queuePriorities);
+	free(graphicsQueuePriorities);
+	free(presentQueuePriorities);
 
 	return res;
 }
+/*
+VkResult createSwapChain(VulkanApp *app) {
+	
+}
+*/
 
 void quitVulkanApp(VulkanApp *app) {
 	if (app == NULL || app->instance == VK_NULL_HANDLE) return;
